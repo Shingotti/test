@@ -6,12 +6,11 @@ def lambda_handler(event, context):
 
     model_id = 'amazon.nova-lite-v1:0'  # Novalite (Chatモデル)
 
+    # ユーザー入力に「必ず日本語で答えてください」を付加
     user_message = {
         "role": "user",
         "content": [
-            {
-                "text": event.get("message", "")
-            }
+            {"text": event.get("message", "") + "。必ず日本語で答えてください。"}
         ]
     }
 
@@ -22,7 +21,13 @@ def lambda_handler(event, context):
     response = bedrock_runtime.invoke_model(body=body, modelId=model_id)
     response_body = json.loads(response.get('body').read())
 
+    # 出力テキストを抽出
+    output_text = response_body["output"]["message"]["content"][0]["text"]
+
     return {
         'statusCode': 200,
-        'body': response_body
+        'headers': {"Content-Type": "application/json"},
+        'body': json.dumps({
+            "message": output_text
+        })
     }
