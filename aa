@@ -4,9 +4,9 @@ import boto3
 def lambda_handler(event, context):
     bedrock_runtime = boto3.client(service_name='bedrock-runtime', region_name='us-east-1')
 
-    model_id = 'amazon.nova-lite-v1:0'  # Novalite (Chatモデル)
+    model_id = 'amazon.nova-lite-v1:0'
 
-    # ユーザー入力に「必ず日本語で答えてください」を付加
+    # ユーザーの入力 + 日本語指定
     user_message = {
         "role": "user",
         "content": [
@@ -21,21 +21,12 @@ def lambda_handler(event, context):
     response = bedrock_runtime.invoke_model(body=body, modelId=model_id)
     response_body = json.loads(response.get('body').read())
 
-    # 出力テキストを抽出
+    # 出力テキスト取得
     output_text = response_body["output"]["message"]["content"][0]["text"]
 
+    # ★ ensure_ascii=False にすることで日本語が \uXXXX にならない
     return {
-        'statusCode': 200,
-        'headers': {"Content-Type": "application/json"},
-        'body': json.dumps({
-            "message": output_text
-        })
+        "statusCode": 200,
+        "headers": {"Content-Type": "application/json"},
+        "body": json.dumps({"message": output_text}, ensure_ascii=False)
     }
-
-
-Allow: bedrock:InvokeModel
-Allow: bedrock:InvokeModelWithResponseStream
-Allow: bedrock:ListFoundationModels
-Allow: logs:CreateLogStream
-Allow: logs:PutLogEvents
-Allow: logs:CreateLogGroup
