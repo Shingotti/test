@@ -31,3 +31,11 @@ def lambda_handler(event, context):
             "message": output_text
         })
     }
+
+
+Allow: bedrock:InvokeModel
+Allow: bedrock:InvokeModelWithResponseStream
+Allow: bedrock:ListFoundationModels
+Allow: logs:CreateLogStream
+Allow: logs:PutLogEvents
+Allow: logs:CreateLogGroup
