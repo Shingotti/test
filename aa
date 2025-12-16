@@ -2,31 +2,41 @@ import json
 import boto3
 
 def lambda_handler(event, context):
-    bedrock_runtime = boto3.client(service_name='bedrock-runtime', region_name='us-east-1')
+    bedrock_runtime = boto3.client(
+        service_name='bedrock-runtime',
+        region_name='us-east-1'
+    )
 
     model_id = 'amazon.nova-lite-v1:0'
 
-    # ユーザーの入力 + 日本語指定
+    # API Gateway対応
+    body = {}
+    if "body" in event and event["body"]:
+        body = json.loads(event["body"])
+    else:
+        body = event  # Lambdaテスト用
+
+    user_input = body.get("message", "")
+
     user_message = {
         "role": "user",
         "content": [
-            {"text": event.get("message", "") + "。必ず日本語で答えてください。"}
+            {"text": user_input + "。必ず日本語で答えてください。"}
         ]
     }
 
-    body = json.dumps({
-        "messages": [user_message]
-    })
+    response = bedrock_runtime.invoke_model(
+        modelId=model_id,
+        body=json.dumps({"messages": [user_message]})
+    )
 
-    response = bedrock_runtime.invoke_model(body=body, modelId=model_id)
-    response_body = json.loads(response.get('body').read())
-
-    # 出力テキスト取得
+    response_body = json.loads(response["body"].read())
     output_text = response_body["output"]["message"]["content"][0]["text"]
 
-    # ★ ensure_ascii=False にすることで日本語が \uXXXX にならない
     return {
         "statusCode": 200,
-        "headers": {"Content-Type": "application/json"},
+        "headers": {
+            "Content-Type": "application/json; charset=utf-8"
+        },
         "body": json.dumps({"message": output_text}, ensure_ascii=False)
     }
